@@ -3,10 +3,17 @@ import numpy as np
 import os
 import sys
 
-path=sys.argv[1]
+import argparse
+
+parser = argparse.ArgumentParser("cifar")
+parser.add_argument('--save', type=str, default='', help='location of the searched models')
+parser.add_argument('--group', type=str, default='e3', choices=['e1', 'e2', 'e3'], help='scan the specific group to find the top-k models')
+parser.add_argument('--topN', type=int, default=5, help='show the best N models')
+args = parser.parse_args()
+
 record={}
-for arch in os.listdir(path):
-    json_path=os.path.join(path,arch,'record.json')
+for arch in os.listdir(args.save):
+    json_path=os.path.join(args.save,arch,'record.json')
     if os.path.exists(json_path):
         try:
             record[arch]=json.load(open(json_path))
@@ -19,27 +26,14 @@ for arch in os.listdir(path):
 net2acc={}
 x=[]
 y=[]
-xx=[]
-yy=[]
+
 for k,v in record.items():
-    if 'e%s'%sys.argv[2] in v.keys():
-        net2acc[k]=v['e%s'%sys.argv[2]][1]
+    if args.group in v.keys():
+        net2acc[k]=v[args.group][1]
         x.append(k)
-        xx.append(int(k[1:]))
-        y.append(v['e%s'%sys.argv[2]][1])
-        yy.append(v['e%s'%sys.argv[2]][1])
+        y.append(v[args.group][1])
 
 index=np.argsort(y)[::-1]
-print([x[i] for i in index])
-
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
-plt.scatter(xx,yy)
-plt.title("Epoch%d"%(int(sys.argv[2])*20))
-plt.xlabel('network index')
-plt.ylabel('accuracy')
-plt.show()
-plt.savefig('im.jpg')
+for i in range(args.topN):
+    print("Arch %s, Acc %.3f" %(x[i], y[i]))
 
